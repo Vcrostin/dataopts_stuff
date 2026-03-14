@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  jupyterhub:
+    build: .
+    container_name: jupyterhub
+    ports:
+      - "${JUPYTER_PORT}:8000"
+    volumes:
+      - jupyterhub_data:/srv/jupyterhub
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py
+    environment:
+      - JUPYTERHUB_CRYPTO_KEY=${JUPYTERHUB_CRYPTO_KEY}
+      - JUPYTERHUB_ADMIN_USERS=${JUPYTERHUB_ADMIN_USERS}
+      - JUPYTERHUB_ALLOWED_USERS=${JUPYTERHUB_ALLOWED_USERS}
+      - DOCKER_NETWORK_NAME=${DOCKER_NETWORK_NAME}
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - jupyterhub-network
+
+volumes:
+  jupyterhub_data:
+
+networks:
+  jupyterhub-network:
+    driver: bridge
