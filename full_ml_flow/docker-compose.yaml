@@ -1,0 +1,43 @@
+version: '3.8'
+
+networks:
+  ml-network:
+    driver: bridge
+    name: ml-network
+
+services:
+  mlflow:
+    image: mlflow:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/mlflow/mlruns
+      - ./mlartifacts:/mlflow/mlartifacts
+    environment:
+      - MLFLOW_TRACKING_URI=http://localhost:5000
+      - MLFLOW_HOST=localhost
+      - MLFLOW_PORT=5000
+      - MLFLOW_ENABLE_ASYNC_LOGGING=true
+    networks:
+      - ml-network
+
+  mlapp:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlapp
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mlflow
+    environment:
+      - MLFLOW_TRACKING_URI=http://localhost:5000
+      - MLFLOW_HOST=localhost
+      - MLFLOW_PORT=5000
+      - MLFLOW_ENABLE_ASYNC_LOGGING=true
+    volumes:
+      - ./mlapp:/app/mlapp
+    networks:
+      - ml-network
