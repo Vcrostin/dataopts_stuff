@@ -1,3 +1,4 @@
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,30 +20,9 @@ spec:
         image: nginx:1.25
         ports:
         - containerPort: 80
-
-        startupProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          failureThreshold: 10
-
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 15
-          periodSeconds: 20
-          failureThreshold: 3
-
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          failureThreshold: 1
+        volumeMounts:
+        - name: nginx-shared-memory
+          mountPath: /dev/shm
         resources:
           requests:
             memory: "64Mi"
@@ -50,3 +30,29 @@ spec:
           limits:
             memory: "128Mi"
             cpu: "200m"
+        startupProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 1
+      volumes:
+      - name: nginx-shared-memory
+        emptyDir:
+          medium: Memory
+          sizeLimit: 128Mi
