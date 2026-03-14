@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lakefs_net
+
+  minio:
+    image: minio/minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_ACCESS_KEY}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - lakefs_net
+
+  lakefs:
+    image: treeverse/lakefs:latest
+    depends_on:
+      - db
+      - minio
+    environment:
+      LAKEFS_DATABASE_POSTGRES_CONNECTION_STRING: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+      LAKEFS_BLOCKSTORE_TYPE: s3
+      LAKEFS_BLOCKSTORE_S3_FORCE_PATH_STYLE: "true"
+      LAKEFS_BLOCKSTORE_S3_ENDPOINT: http://localhost:9000
+      LAKEFS_BLOCKSTORE_S3_CREDENTIALS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY_ID}
+      LAKEFS_BLOCKSTORE_S3_CREDENTIALS_SECRET_ACCESS_KEY: ${MINIO_SECRET_ACCESS_KEY}
+      LAKEFS_AUTH_ENCRYPT_SECRET_KEY: ${LAKEFS_AUTH_ENCRYPT_SECRET_KEY}
+      LAKEFS_GATEWAYS_S3_DOMAIN_NAME: minio:9000
+      LAKEFS_DATABASE_TYPE: postgres
+      LAKEFS_AUTH_POST_LOGIN_REDIRECT_URL: http://localhost:8000/
+    volumes:
+      - ./lakefs.yaml:/etc/lakefs/config.yaml
+    ports:
+      - "8000:8000"
+    networks:
+      - lakefs_net
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  lakefs_net:
+    driver: bridge

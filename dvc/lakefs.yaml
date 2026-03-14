@@ -1,0 +1,4 @@
+auth:
+  ui_config:
+    login_cookie_names:
+      - internal_auth_session
