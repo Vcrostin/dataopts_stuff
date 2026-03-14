@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    container_name: mlflow_db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mlflow_network
+
+  mlflow:
+    build: .
+    container_name: mlflow_server
+    environment:
+      MLFLOW_DB_URI: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    networks:
+      - mlflow_network
+    command: >
+      sh -c "sleep 10 &&
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri ${MLFLOW_DB_URI}
+      --default-artifact-root ./artifacts"
+
+volumes:
+  postgres_data:
+
+networks:
+  mlflow_network:
+    driver: bridge
